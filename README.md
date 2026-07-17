@@ -1,17 +1,11 @@
-# HR MCP — OpenAI Agent variant
+# HR Analytics MCP — OpenAI Agent
 
-Same HR database (`hr_db`), different querying model. Where the sibling `HR_MCP`
-project lets **Claude** write the SQL, this variant runs a **server-side GPT-4o
-agent** that does NL→SQL end to end.
+An MCP server for HR analytics over `hr_db`, powered by a **server-side GPT-4o
+agent** that does NL→SQL end to end: it reads the schema, writes and runs the
+SQL (self-correcting on errors), and returns the data plus a short narrative.
 
-## How it differs from HR_MCP
-
-| | HR_MCP (Claude variant) | HR_MCP_openai (this) |
-|---|---|---|
-| Who writes SQL | the MCP client's model (Claude) | a GPT-4o agent inside the server |
-| Headline tool | `run_db_query` | `ask_analytics` |
-| OpenAI key | not needed | **required** (`OPENAI_API_KEY`) |
-| Runs standalone | no | yes (`python nl2sql.py "..."`) |
+Headline tool: **`ask_analytics`**. Requires an `OPENAI_API_KEY`. Can also run
+standalone (`python nl2sql.py "..."`) with no MCP client.
 
 ## The agent (`nl2sql.py`)
 
@@ -117,4 +111,4 @@ HR_MCP_openai/
 └── .gitignore            keeps .env (OPENAI_API_KEY + DB creds) out of git
 ```
 
-Data lives in `hr_db` — loaded by the sibling `HR_MCP/load_data.py`. This project reads only.
+Data lives in `hr_db` (MySQL on AWS RDS). This project is read-only.
