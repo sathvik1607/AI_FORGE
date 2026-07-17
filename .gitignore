@@ -1,0 +1,27 @@
+# Environment & secrets — NEVER commit these (holds OPENAI_API_KEY + DB creds)
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+myenv/
+.venv/
+env/
+*.egg-info/
+
+# Generated files
+*.xlsx
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
