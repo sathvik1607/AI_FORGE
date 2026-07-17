@@ -1,5 +1,5 @@
 """
-hr_nl2sql_agent.py — OpenAI-agentic NL->SQL pipeline for hr_db.
+nl2sql.py — OpenAI-agentic NL->SQL pipeline for hr_db.
 
 A lean LangGraph agent modelled on the allpets nl2sql pattern, pointed at the HR
 database. Three nodes:

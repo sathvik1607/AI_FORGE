@@ -11,9 +11,9 @@ agent** that does NL→SQL end to end.
 | Who writes SQL | the MCP client's model (Claude) | a GPT-4o agent inside the server |
 | Headline tool | `run_db_query` | `ask_analytics` |
 | OpenAI key | not needed | **required** (`OPENAI_API_KEY`) |
-| Runs standalone | no | yes (`python hr_nl2sql_agent.py "..."`) |
+| Runs standalone | no | yes (`python nl2sql.py "..."`) |
 
-## The agent (`hr_nl2sql_agent.py`)
+## The agent (`nl2sql.py`)
 
 A LangGraph pipeline:
 
@@ -43,7 +43,7 @@ pip install -r requirements.txt
 ## Run
 
 ```bash
-python hr_nl2sql_agent.py "Which department has the highest attrition rate?"   # standalone
+python nl2sql.py "Which department has the highest attrition rate?"   # standalone
 python server.py                                                              # MCP stdio
 python -m mcp dev server.py                                                   # inspector
 ```
@@ -60,20 +60,61 @@ python -m mcp dev server.py                                                   # 
 }
 ```
 
+## Deploy on Render
+
+The server auto-detects Render (via the `RENDER` env var Render sets for you):
+locally it speaks **stdio**; on Render it serves **Streamable HTTP** at `/mcp`
+on `$PORT`, with a `/health` check. Remote MCP clients connect to
+`https://<your-service>.onrender.com/mcp`.
+
+**1. Push to a Git repo.** Render deploys from GitHub/GitLab. `.env` is
+git-ignored — never commit it; the secrets go in the dashboard (step 3).
+
+**2. Create the service** — either way uses the committed [`render.yaml`](render.yaml):
+- *Blueprint (recommended):* Render dashboard → **New → Blueprint** → pick the repo.
+  It reads `render.yaml` (web service, `pip install -r requirements.txt`,
+  `python server.py`, health check `/health`).
+- *Manual:* **New → Web Service** → Build `pip install -r requirements.txt`,
+  Start `python server.py`, Health check path `/health`.
+
+**3. Set the secret env vars** in the Render dashboard (they are `sync: false`
+in `render.yaml`, so their **values** are never committed):
+
+| Variable | |
+|---|---|
+| `OPENAI_API_KEY` | your OpenAI key (required for `ask_analytics`) |
+| `DB_HOST` / `DB_USER` / `DB_PASSWORD` | the `hr_db` RDS credentials |
+
+`DB_NAME` (`hr_db`), `DB_PORT` (`3306`), and `OPENAI_MODEL` (`gpt-4o`) are
+committed as non-secret defaults. Render injects `RENDER`, `PORT`, and
+`RENDER_EXTERNAL_URL` automatically — `RENDER_EXTERNAL_URL` is added to the
+allowed-hosts list so DNS-rebinding protection stays on. To allow additional
+hostnames, set `ALLOWED_HOSTS` (comma-separated, no scheme).
+
+**4. Deploy.** Watch the log for `Starting HR OpenAI MCP on port … (Streamable HTTP at /mcp)`,
+then verify `https://<your-service>.onrender.com/health` returns `OK`.
+
+> **Free tier** sleeps after ~15 min idle → a ~50 s cold start on the next
+> request. For always-on, set `plan: starter` (~$7/mo) in `render.yaml`.
+> **Cost note:** every `ask_analytics` call is ~2 GPT‑4o calls — the free
+> `run_db_query` path stays available for zero-cost exact SQL.
+
 ## Layout
 
 ```
 HR_MCP_openai/
 ├── config.py             .env + shared engine + OpenAI settings
-├── hr_nl2sql_agent.py    the LangGraph GPT-4o NL->SQL agent
+├── nl2sql.py             the LangGraph GPT-4o NL->SQL agent
 ├── adapters/
 │   ├── query.py          schema text + run_query (read-only, shared)
 │   └── analytics.py      safe wrapper around run_agent
 ├── tools/
 │   ├── analytics.py      ask_analytics
 │   └── query.py          get_db_schema + run_db_query
-├── server.py             FastMCP "hr-openai"; registers all tools
-└── requirements.txt
+├── server.py             FastMCP "hr-openai"; stdio locally, HTTP on Render
+├── render.yaml           Render deploy config (web service + /health)
+├── requirements.txt
+└── .gitignore            keeps .env (OPENAI_API_KEY + DB creds) out of git
 ```
 
 Data lives in `hr_db` — loaded by the sibling `HR_MCP/load_data.py`. This project reads only.

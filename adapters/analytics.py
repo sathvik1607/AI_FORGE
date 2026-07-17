@@ -1,10 +1,10 @@
 """
-Adapter: wraps hr_nl2sql_agent.run_agent for the ask_analytics tool.
+Adapter: wraps nl2sql.run_agent for the ask_analytics tool.
 Never leaks tracebacks to the client — returns a safe error message instead.
 """
 import config  # MUST be first
 
-from hr_nl2sql_agent import run_agent as _run_agent
+from nl2sql import run_agent as _run_agent
 
 
 def run_agent(question: str) -> dict:
